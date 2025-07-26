@@ -1,0 +1,13 @@
+name: pora
+dependencies:
+  - jupyter
+  - numpy
+  - jax
+  - matplotlib
+  - pip
+  - pip:
+    - gymnasium[box2d]
+    - equinox
+    - optax
+    - opencv-python
+    - pyvirtualdisplay

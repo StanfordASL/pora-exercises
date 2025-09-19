@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.transforms as mtransforms
 import matplotlib.animation as animation
+from IPython import get_ipython
 
 def animate_planar_quad(t, x, y, θ, title_string=None):
     """Animate the planar quadrotor system from given position data.
@@ -102,12 +103,12 @@ def animate_planar_quad(t, x, y, θ, title_string=None):
                                   fargs=(t[::step], x[::step], y[::step], θ[::step]),
                                   interval=step * dt * 1000,
                                   blit=True)
-    if display_in_notebook:
-        try:
-            get_ipython()
-            from IPython.display import HTML
-            ani = HTML(ani.to_html5_video())
-        except (NameError, ImportError):
-            raise RuntimeError("`display_in_notebook = True` requires this code to be run in jupyter/colab.")
+
+    try:
+        get_ipython()
+        from IPython.display import HTML
+        ani = HTML(ani.to_html5_video())
+    except (NameError, ImportError):
+        raise RuntimeError("`display_in_notebook = True` requires this code to be run in jupyter/colab.")
     plt.close(fig)
     return ani

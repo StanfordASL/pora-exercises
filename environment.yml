@@ -4,6 +4,8 @@ dependencies:
   - numpy
   - jax
   - matplotlib
+  - shapely
+  - scipy
   - pip
   - pip:
     - gymnasium[box2d]

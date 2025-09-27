@@ -4,4 +4,4 @@ __pycache__/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-notebook_outputs/
+lunar_lander_outputs/

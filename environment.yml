@@ -6,6 +6,7 @@ dependencies:
   - matplotlib
   - shapely
   - scipy
+  - seaborn
   - pip
   - pip:
     - gymnasium[box2d]

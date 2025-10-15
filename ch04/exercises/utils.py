@@ -53,11 +53,24 @@ class Workspace2D(object):
         """
         return self.lower + np.random.rand(2)*(self.upper - self.lower)
 
-    def is_free(self, x):
-        """Verifies that point is not inside any obstacles by some margin"""
+    def is_free(self, x, margin=0.01):
+        """
+        Verifies that point is not inside any obstacles by some margin
+        that is scaled by the max workspace dimension.
+        """
         scale = np.max([self.width, self.height])
         for obs in self.obstacles:
-            if Point(x).distance(obs) < scale * 0.01:
+            if Point(x).distance(obs) < scale * margin:
+                return False
+        return True
+
+    def is_free_line(self, x1, x2):
+        """
+        Checks if line from `x1` to `x2` is collision free.
+        """
+        line = LineString([x1, x2])
+        for obstacle in self.obstacles:
+            if line.intersects(obstacle):
                 return False
         return True
 
@@ -82,7 +95,11 @@ class Workspace2D(object):
         ax.set(xlim=(0,self.width), ylim=(0,self.height))
 
 class Node:
-    def __init__(self, point: np.ndarray, parent: Optional[int] = None, cost: Optional[float] = float('inf')):
+    def __init__(self, point: np.ndarray, 
+                 parent: Optional[int] = None, 
+                 cost: Optional[float] = float('inf'), 
+                 idx: Optional[int] = None):
         self.point = point
         self.parent = parent
         self.cost = cost
+        self.idx = idx

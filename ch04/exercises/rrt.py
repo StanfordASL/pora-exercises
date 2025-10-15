@@ -41,11 +41,24 @@ class RRT(object):
         distance (subject to robot dynamics) from V[i] to x is minimized.
 
         Inputs:
-            x - query state
+            x: query state
         Output:
             Integer index of nearest point in self.V to x
         """
         raise NotImplementedError("nearest_neighbor must be overriden by a subclass of RRT")
+
+    def neighbors(self, x, r):
+        """
+        Given a query state x, returns the indices of self.V such that the distance
+        from the query state to the states is less than r 
+
+        Inputs:
+            x: query state
+            r: query radius
+        Output:
+            List of indices into self.V of nodes with radius r of the query state.
+        """
+        raise NotImplementedError("neighbors must be overriden by a subclass of RRT")
 
     def steer_towards(self, x1, x2, eps):
         """
@@ -128,8 +141,122 @@ class RRT(object):
             None, but should modify self.path
         """
         ########## Code starts here ##########
-
+       
         ########## Code ends here ##########
+
+    def solve_optimal(self, eps, max_iters=1000, goal_bias=0.05):
+        """
+        Compute a path from a start point to a goal region, avoiding obstacles, using the RRT* algorithm.
+
+        Inputs:
+            eps: maximum steering distance
+            max_iters: maximum number of RRT iterations (early termination
+                is possible when a feasible solution is found)
+            goal_bias: probability during each iteration of setting
+                x_rand = self.x_goal (instead of uniformly randly sampling
+                from the state space)
+
+        Returns:
+            Cost-to-arrive at the goal node from the starting node, or inf if no solution was found
+        """
+        self.path = []
+        start_node = Node(self.x_init, parent=None, cost=0, idx=0)
+
+        self.V = [start_node]
+
+        # Compute connection radius
+        mu = self.workspace.width * self.workspace.height
+        for obstacle in self.workspace.obstacles:
+            mu -= obstacle.area
+        r = lambda N: min(1.1*np.sqrt(3*mu/np.pi*np.log(N)/N), eps)
+
+        # Search
+        goal_idx = None
+        for k in range(max_iters):
+            # Sample a new point randomly, select the goal occasionally
+            if np.random.rand() < goal_bias and goal_idx is None:
+                x = self.x_goal
+            else:
+                x = self.workspace.random_sample()
+
+            # Get nearest neighbor in current tree to sampled point, try to steer
+            # towards it to define new sample point
+            nn_idx = self.nearest_neighbor(x)
+            x_near = self.V[nn_idx].point
+            x_new = self.steer_towards(x_near, x, eps)
+
+            # Check if the new sample point is in the workspace and there is a free motion to
+            # connect to the tree
+            if self.workspace.in_statespace(x_new) and self.is_free_motion(x_near, x_new):
+                # Create new tree node, default assign parent to the nearest neighbor
+                N = len(self.V)
+                cost_to_arrive = self.V[nn_idx].cost + np.linalg.norm(x_new - x_near)
+                new_node = Node(x_new, parent=nn_idx, cost=cost_to_arrive, idx=N)
+                
+                # Compute neighbors of the new node, within radius r
+                near_nodes = self.neighbors(x_new, r(N))
+
+                # Compute cost to near nodes, which is defined as the distance for this example
+                cost_to_near_nodes = [np.linalg.norm(node.point - x_new) for node in near_nodes]
+
+                # Sort the cost-to-arrive from lowest to highest for each nearby node and then
+                # figure out the best parent node that is collision free
+                sorted_costs = sorted([(cost + node.cost, i) for i, (node, cost) in enumerate(zip(near_nodes, cost_to_near_nodes))], key=lambda x: x[0])
+                for cost, i in sorted_costs:
+                    if cost < new_node.cost and self.is_free_motion(x_new, near_nodes[i].point):
+                        new_node.parent = near_nodes[i].idx
+                        new_node.cost = cost
+                        break
+
+                # Add new node to the tree
+                self.V.append(new_node)
+                if (new_node.point == self.x_goal).all():
+                    goal_idx = N
+
+                # For each nearby node to the new node, check if going through the new node to get to the
+                # nearby node would have lower cost-to-arrive
+                nodes_to_rewire = [near_nodes[i] for (i, cost) in enumerate(cost_to_near_nodes) if cost + new_node.cost < near_nodes[i].cost]
+
+                # Rewire nearby nodes to new node as parent
+                for near_node in nodes_to_rewire:
+                    if not self.is_free_motion(x_new, near_node.point):
+                        continue
+                    cost = np.linalg.norm(x_new - near_node.point)
+                    new_cost_to_arrive = new_node.cost + cost
+                    cost_change = new_cost_to_arrive - near_node.cost
+
+                    # Update the nearby node parent and cost
+                    near_node.parent = new_node.idx
+                    near_node.cost = new_cost_to_arrive
+
+                    descendants_to_process = [near_node.idx]
+                    while descendants_to_process:
+                        current_node_idx = descendants_to_process.pop()
+                        children_indices = [node.idx for node in self.V if node.parent == current_node_idx]
+                        descendants_to_process.extend(children_indices)
+                        for child_idx in children_indices:
+                            self.V[child_idx].cost += cost_change
+                                
+        self.plot_problem()
+        self.plot_tree(color="blue", linewidth=.5, label="RRT tree", alpha=0.5)
+        if goal_idx is None:
+            print("Solution not found!")
+            return np.inf
+
+        # Construct path
+        self.path = []
+        current_idx = goal_idx
+        while current_idx is not None:
+            self.path.append(self.V[current_idx])
+            current_idx = self.V[current_idx].parent
+        self.path.append(start_node)
+        self.path.reverse()
+
+        # Plot path
+        self.plot_path(color="green", linewidth=2, label="Solution path")
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.03), fancybox=True, ncol=3)
+        plt.scatter([node.point[0] for node in self.V], [node.point[1] for node in self.V])
+        return self.V[goal_idx].cost
 
 class GeometricRRT(RRT):
     """
@@ -141,6 +268,12 @@ class GeometricRRT(RRT):
         ########## Code starts here ##########
 
         ########## Code ends here ##########
+
+    def neighbors(self, x, r):
+        """
+        Computes neighbors with Euclidean distance to x that is < r.
+        """
+        return [node for node in self.V if np.linalg.norm(node.point - x) < r]
 
     def steer_towards(self, x1, x2, eps):
         # Consult function specification in parent (RRT) class.

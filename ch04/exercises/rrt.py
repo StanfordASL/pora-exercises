@@ -117,60 +117,6 @@ class RRT(object):
 
         return success
 
-    def solve_star(self, eps, max_iters=1000, goal_bias=0.05, shortcut=False):
-        """
-        Constructs an RRT rooted at self.x_init with the aim of producing a
-        dynamically-feasible and obstacle-free trajectory from self.x_init
-        to self.x_goal.
-
-        Inputs:
-            eps: maximum steering distance
-            max_iters: maximum number of RRT iterations (early termination
-                is possible when a feasible solution is found)
-            goal_bias: probability during each iteration of setting
-                x_rand = self.x_goal (instead of uniformly randly sampling
-                from the state space)
-        Output:
-            None officially (just plots), but see the "Intermediate Outputs"
-            descriptions below
-        """
-        self.V = [Node(self.x_init)] # reset the list of nodes
-
-        success = False
-
-        ## Intermediate Outputs
-        # You must update and/or populate:
-        #    - self.V: the represention of the planning tree
-        #    - success: whether or not you've found a solution within max_iters RRT iterations
-        #    - self.path: if success is True, then must contain list of Nodes
-        #          [x_init, ..., x_goal] such that the global trajectory made by linking steering
-        #          trajectories connecting the states in order is obstacle-free.
-
-        ########## Code starts here ##########
-        ## Hints:
-        #   - use the helper functions nearest_neighbor, steer_towards, and is_free_motion
-        #   - the order in which you pass in arguments to steer_towards and is_free_motion is important
-
-        ########## Code ends here ##########
-
-        # Plot the results
-        self.plot_problem()
-        self.plot_tree(color="blue", linewidth=.5, label="RRT tree", alpha=0.5)
-        if success:
-            if shortcut:
-                self.plot_path(color="purple", linewidth=2, label="Original solution path")
-                self.shortcut_path()
-                self.plot_path(color="green", linewidth=2, label="Shortcut solution path")
-            else:
-                self.plot_path(color="green", linewidth=2, label="Solution path")
-            plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.03), fancybox=True, ncol=3)
-            plt.scatter([node.point[0] for node in self.V], [node.point[1] for node in self.V])
-
-        else:
-            print("Solution not found!")
-
-        return success
-
     def shortcut_path(self):
         """
         Iteratively removes nodes from solution path to find a shorter path
@@ -182,7 +128,7 @@ class RRT(object):
             None, but should modify self.path
         """
         ########## Code starts here ##########
-        raise NotImplementedError("Implement before use")
+
         ########## Code ends here ##########
 
 class GeometricRRT(RRT):
@@ -193,14 +139,14 @@ class GeometricRRT(RRT):
     def nearest_neighbor(self, x):
         # Consult function specification in parent (RRT) class.
         ########## Code starts here ##########
-        raise NotImplementedError("Implement before use")
+
         ########## Code ends here ##########
 
     def steer_towards(self, x1, x2, eps):
         # Consult function specification in parent (RRT) class.
         ########## Code starts here ##########
         # Hint: This should take 1-4 line.
-        raise NotImplementedError("Implement before use")
+
         ########## Code ends here ##########
         pass
 

@@ -2,7 +2,8 @@ from typing import Optional
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from shapely.geometry import Polygon, LineString
+from shapely import box
+from shapely.geometry import Polygon, LineString, Point
 
 class Workspace2D(object):
     """
@@ -17,6 +18,21 @@ class Workspace2D(object):
     def set_obstacles(self, obstacles: list[Polygon]):
         self.obstacles = obstacles
 
+    def generate_random_box_obstacles(self, num_obs, min_obs_size, max_obs_size):
+        """
+        Generate planning problem within the 2D workspace by defining
+        a set of obstacles at random.
+        """
+        x_margin = self.width * 0.1
+        y_margin = self.height * 0.1
+        obs_corners_x = np.random.uniform(-x_margin, self.width + x_margin, num_obs)
+        obs_corners_y = np.random.uniform(-y_margin, self.height + y_margin, num_obs)
+        obs_lower_corners = np.vstack([obs_corners_x, obs_corners_y]).T
+        obs_sizes = np.random.uniform(min_obs_size, max_obs_size, (num_obs, 2))
+        obs_upper_corners = obs_lower_corners + obs_sizes
+        obstacles = list(zip(obs_lower_corners, obs_upper_corners))
+        self.obstacles = [box(obs[0][0], obs[0][1], obs[1][0], obs[1][1]) for obs in obstacles]
+
     @property
     def width(self):
         return self.upper[0] - self.lower[0]
@@ -29,13 +45,30 @@ class Workspace2D(object):
         """
         Checks if the point is inside the valid statespace
         """
-        return all(x < self.upper) and all(x > self.lower)
+        return all(x <= self.upper) and all(x >= self.lower)
 
     def random_sample(self):
         """
         Compute a random sample point within the statespace
         """
         return self.lower + np.random.rand(2)*(self.upper - self.lower)
+
+    def is_free(self, x):
+        """Verifies that point is not inside any obstacles by some margin"""
+        scale = np.max([self.width, self.height])
+        for obs in self.obstacles:
+            if Point(x).distance(obs) < scale * 0.01:
+                return False
+        return True
+
+    def free_random_sample(self):
+        """
+        Compute a random sample point within the statespace
+        """
+        while True:
+            x = self.random_sample()
+            if (self.is_free(x)):
+                return x
 
     def plot(self, fig_num=0, fig_size=6):
         """

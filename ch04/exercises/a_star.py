@@ -2,80 +2,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-class DetOccupancyGrid2D(object):
-    """
-    A 2D state space grid with a set of rectangular obstacles. The grid is
-    fully deterministic.
-    """
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
-        self.obstacles = []
-
-    def set_obstacles(self, obstacles):
-        self.obstacles = obstacles
-
-    def generate_random_obstacles(self, num_obs, min_obs_size, max_obs_size):
-        """
-        Generate planning problem within the 2D workspace by defining
-        a set of obstacles at random.
-        """
-        x_margin = self.width * 0.1
-        y_margin = self.height * 0.1
-        obs_corners_x = np.random.uniform(-x_margin, self.width + x_margin, num_obs)
-        obs_corners_y = np.random.uniform(-y_margin, self.height + y_margin, num_obs)
-        obs_lower_corners = np.vstack([obs_corners_x, obs_corners_y]).T
-        obs_sizes = np.random.uniform(min_obs_size, max_obs_size, (num_obs, 2))
-        obs_upper_corners = obs_lower_corners + obs_sizes
-        self.obstacles = list(zip(obs_lower_corners, obs_upper_corners))
-
-    def generate_random_init_and_goal(self):
-        """
-        Generate a random initial and goal point that are in the free space of
-        the workspace.
-        """
-        x_margin = self.width * 0.1
-        y_margin = self.height * 0.1
-        x_init = tuple(np.random.uniform(0, self.width - x_margin, 2).tolist())
-        while not self.is_free(x_init):
-            x_init = tuple(np.random.randint(0, self.width - x_margin, 2).tolist())
-        x_goal = x_init
-        while (not self.is_free(x_goal)) or (np.linalg.norm(np.array(x_goal) - np.array(x_init)) <
-                                                  np.sqrt(self.width**2 + self.height**2) * 0.4):
-            x_goal = tuple(np.random.uniform(0, self.width - x_margin, 2).tolist())
-        return x_init, x_goal
-
-    def is_free(self, x):
-        """Verifies that point is not inside any obstacles by some margin"""
-        for obs in self.obstacles:
-            if x[0] >= obs[0][0] - self.width * .01 and \
-               x[0] <= obs[1][0] + self.width * .01 and \
-               x[1] >= obs[0][1] - self.height * .01 and \
-               x[1] <= obs[1][1] + self.height * .01:
-                return False
-        return True
-
-    def plot(self, fig_num=0, fig_size=6):
-        """Plots the space and its obstacles"""
-        fig = plt.figure(fig_num, figsize=[fig_size, fig_size])
-        ax = fig.add_subplot(111, aspect='equal')
-        for obs in self.obstacles:
-            ax.add_patch(
-            patches.Rectangle(
-            obs[0],
-            obs[1][0]-obs[0][0],
-            obs[1][1]-obs[0][1],))
-        ax.set(xlim=(0,self.width), ylim=(0,self.height))
+from utils import Workspace2D
 
 class AStar(object):
     """
     Class to define a motion planning problem to be solved using A*
     """
 
-    def __init__(self, statespace_lo, statespace_hi, x_init, x_goal, occupancy, resolution=1):
-        self.statespace_lo = statespace_lo         # state space lower bound (e.g., [-5, -5])
-        self.statespace_hi = statespace_hi         # state space upper bound (e.g., [5, 5])
-        self.occupancy = occupancy                 # occupancy grid (a DetOccupancyGrid2D object)
+    def __init__(self, workspace, x_init, x_goal, resolution=1):
+        self.workspace = workspace                 # workspace grid (a Workspace2D object)
         self.resolution = resolution               # resolution of the discretization of state space (cell/m)
         self.x_offset = x_init                     
         self.x_init = self.snap_to_grid(x_init)    # initial state
@@ -90,7 +25,7 @@ class AStar(object):
 
         self.open_set.add(self.x_init)
         self.cost_to_arrive[self.x_init] = 0
-        self.est_cost_through[self.x_init] = self.distance(self.x_init,self.x_goal)
+        self.est_cost_through[self.x_init] = self.distance(self.x_init, self.x_goal)
 
         self.path = None        # the final path as a list of states
 
@@ -138,7 +73,7 @@ class AStar(object):
         if not self.path:
             return
 
-        self.occupancy.plot(fig_num, fig_size=fig_size)
+        self.workspace.plot(fig_num, fig_size=fig_size)
 
         solution_path = np.asarray(self.path)
         plt.plot(solution_path[:,0], solution_path[:,1], color="green", linewidth=2, label="A* solution path", zorder=10)
@@ -148,7 +83,7 @@ class AStar(object):
         plt.annotate(r"$x_{goal}$", np.array(self.x_goal) + np.array([.2, .2]), fontsize=16)
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.03), fancybox=True, ncol=3)
 
-        plt.axis([0, self.occupancy.width, 0, self.occupancy.height])
+        plt.axis([0, self.workspace.width, 0, self.workspace.height])
 
     def plot_tree(self, point_size=15):
         """
@@ -177,7 +112,7 @@ class AStar(object):
         
         """
         ########## Code starts here ##########
-        # Hint: self.occupancy is a DetOccupancyGrid2D object, take a look at its methods 
+        # Hint: self.workspace is a Workspace2D object, take a look at its methods 
         # for what might be useful here
 
         ########## Code ends here ##########

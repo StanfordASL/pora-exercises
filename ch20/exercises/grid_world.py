@@ -10,11 +10,11 @@ class GridWorld:
         """
         A gridworld environment with absorbing states at [0, 0] and [size - 1, size - 1].
         Args:
-            size (int): the dimension of the grid in each direction
+            size (int): the dimension of the grid in each direction, should be < 20 for render capability
             cell_reward (float): the reward return after extiting any non absorbing state
         """
         self.state_value = np.zeros((size, size))
-        self.size = size
+        self.size = np.min((size, 20))
         self.actions = {
             0: [1, 0],   # north
             1: [-1, 0],  # south
@@ -54,18 +54,28 @@ class GridWorld:
 
         return next_state, reward
 
-    def render(self, state_value=None, title=None):
+    def render(self, state_value=None, policy=None, title=None):
         """
         Displays the current value table of mini gridworld environment
         """
         values = state_value if state_value is not None else self.state_value
         if (values.shape != (self.size, self.size)):
             raise ValueError("state_value is wrong size")
-        size = self.size if self.size < 20 else 20
-        fig, ax = plt.subplots(figsize=(size, size))
+        fig, ax = plt.subplots(figsize=(self.size, self.size))
         if title is not None:
             ax.set_title(title)
-        sn.heatmap(values, annot=True, fmt=".2f", cmap=W,
+        sn.heatmap(values, annot=True, fmt=".1f", cmap=W,
                    linewidths=1, linecolor="black", cbar=False)
+        if policy is not None:
+            for i in range(self.size):
+                for j in range(self.size):
+                    for action_idx, action in self.actions.items():
+                        scale = 0.25
+                        p = scale * policy[i, j, action_idx]
+                        base = np.array([i + 0.5, j + 0.5])
+                        delta = np.array(action)
+                        base += 0.25 * delta
+                        plt.arrow(base[0], base[1], p * delta[0], p * delta[1], 
+                                  color='r', width=0.1 * policy[i, j, action_idx], alpha=0.5)
         plt.show()
         return fig, ax

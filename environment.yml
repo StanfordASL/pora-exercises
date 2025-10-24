@@ -8,6 +8,8 @@ dependencies:
   - scipy
   - seaborn
   - pip
+  - pytorch
+  - tqdm
   - pip:
     - gymnasium[box2d]
     - equinox

@@ -10,6 +10,7 @@ dependencies:
   - pip
   - pytorch
   - tqdm
+  - cvxpy
   - pip:
     - gymnasium[box2d]
     - equinox

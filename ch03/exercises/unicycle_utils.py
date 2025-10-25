@@ -23,19 +23,21 @@ class State:
 
 def unicycle_dynamics(x: np.ndarray, t: float, u: np.ndarray, noise: np.ndarray) -> T.List[float]:
     """
-    Differential equation describing the kinematic unicycle with state x = [x, y, th] and
-    control u = [v, om], with assumed noise on the control inputs.
+    Differential equation describing the kinematic unicycle with state x = [x, y, v, th] and
+    control u = [a, om], with assumed noise on the control inputs.
     """
-    u_0 = u[0] + noise[0]
-    u_1 = u[1] + noise[1]
-    dxdt = [u_0 * np.cos(x[2]),
-            u_0 * np.sin(x[2]),
-            u_1]
+    v = x[2] + noise[0]
+    om = u[1] + noise[1]
+    dxdt = [v * np.cos(x[3]),
+            v * np.sin(x[3]),
+            u[0],
+            om]
     return dxdt
 
 def simulate_unicycle(
     x_0: float,
     y_0: float,
+    v_0: float,
     th_0: float,
     times: T.List[float],
     controller: T.Optional[T.Any] = None,
@@ -46,7 +48,7 @@ def simulate_unicycle(
     Simulate the unicycle model given a closed-loop controller OR a sequence of control inputs
     to appl open-loop.
     
-    inputs: x_0, y_0, th_0 (floats) initial state
+    inputs: x_0, y_0, v_0, th_0 (floats) initial state
             times (list len N) sequence of times at which to apply control
             controller: controller object to use to compute feedback control
             open_loop_control: (np.array shape: N-1, 2) list of control inputs to apply
@@ -58,8 +60,8 @@ def simulate_unicycle(
 
             (one of controller or open_loop_control must be specified)
 
-    outputs: traj (np.array shape (N, 3)) sequence of [x,y,th] state vectors
-             ctrl (np.array shape (N-1, 2)) sequence of [v, om] control vectors
+    outputs: traj (np.array shape (N, 4)) sequence of [x,y,v,th] state vectors
+             ctrl (np.array shape (N-1, 2)) sequence of [a, om] control vectors
     """
 
     feedback = False
@@ -69,9 +71,9 @@ def simulate_unicycle(
         print("Either provide a controller or a sequence of open loop actions")
         raise Exception
 
-    x = np.array([x_0, y_0, th_0])
+    x = np.array([x_0, y_0, v_0, th_0])
     N = len(times)
-    traj = np.zeros([N, 3])
+    traj = np.zeros([N, 4])
     noise = noise_scale * np.random.randn(N, 2) # control noise
     ctrl = np.zeros([N, 2])
     for i,t in enumerate(times[:-1]):
@@ -79,12 +81,12 @@ def simulate_unicycle(
 
         # Compute control
         if feedback:
-            v, om = controller.compute_control(x[0], x[1], x[2], t)
+            a, om = controller.compute_control(x[0], x[1], x[2], x[3], t)
         elif open_loop_control is not None:
-            v = open_loop_control[i,0]
+            a = open_loop_control[i,0]
             om = open_loop_control[i,1]
 
-        ctrl[i,0] = v
+        ctrl[i,0] = a
         ctrl[i,1] = om
 
         # Apply control and simulate forward
@@ -111,16 +113,16 @@ def plot_unicycle_traj(t, trajs, ctrls, labels, linestyles=None, alphas=None):
     for i, traj in enumerate(trajs):
         style = linestyles[i] if linestyles is not None else '-'
         alpha = alphas[i] if alphas is not None else 1
-        plt.plot(t, traj[:,2], label=labels[i], color='g', linestyle=style, alpha=alpha)
+        plt.plot(t, traj[:,3], label=labels[i], color='g', linestyle=style, alpha=alpha)
     plt.ylabel('th')
     plt.legend()
     plt.grid(True)
     plt.xlabel('t')
     plt.subplot(3,2,4)
-    for i, ctrl in enumerate(ctrls):
+    for i, traj in enumerate(trajs):
         style = linestyles[i] if linestyles is not None else '-'
         alpha = alphas[i] if alphas is not None else 1
-        plt.plot(t[:-1], ctrl[:-1,0], label=labels[i], color='b', linestyle=style, alpha=alpha)
+        plt.plot(t, traj[:,2], label=labels[i], color='b', linestyle=style, alpha=alpha)
     plt.grid(True)
     plt.xlabel('t')
     plt.ylabel('v')

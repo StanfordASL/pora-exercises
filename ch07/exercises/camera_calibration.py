@@ -46,7 +46,7 @@ def generate_chessboard_2D_pixel_coordinates(img_path: str) -> Tuple[np.ndarray,
 
     ########## Code starts here ##########
     # NOTE: Ensure that points are ordered left-to-right, bottom-to-top
-    
+
     ########## Code ends here ##########
     
     return u_meas, v_meas
@@ -74,6 +74,7 @@ def compute_homography(
     # Hint: use np.linalg.svd
     # Hint: Use <array>.reshape(3, 3) to give M the proper dimensions.
 
+    return M
     ########## Code ends here ##########
     
 def compute_intrinsics(homographies: List[np.ndarray]) -> np.ndarray:
@@ -107,13 +108,13 @@ def compute_intrinsics(homographies: List[np.ndarray]) -> np.ndarray:
 
     ########## Code ends here ##########
     
-def compute_extrinsics(K: np.ndarray, M: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def compute_extrinsics(K: np.ndarray, H: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Computes camera extrinsics from a homography and intrinsics.
 
     Args:
         K: (3, 3) camera intrinsic matrix.
-        M: (3, 3) homography matrix.
+        H: (3, 3) homography matrix.
     
     Returns:
         R: (3, 3) camera extrinsic rotation matrix.

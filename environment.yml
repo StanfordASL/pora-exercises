@@ -17,3 +17,5 @@ dependencies:
     - optax
     - opencv-python
     - pyvirtualdisplay
+    - torchvision
+    - ultralytics

@@ -1,5 +1,7 @@
 name: pora
 dependencies:
+  - python=3.11
+  - pip
   - jupyter
   - numpy
   - jax
@@ -7,7 +9,6 @@ dependencies:
   - shapely
   - scipy
   - seaborn
-  - pip
   - pytorch
   - tqdm
   - cvxpy
@@ -19,3 +20,4 @@ dependencies:
     - pyvirtualdisplay
     - torchvision
     - ultralytics
+    - open3d

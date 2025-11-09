@@ -5,3 +5,5 @@ __pycache__/
 .ipynb_checkpoints
 
 lunar_lander_outputs/
+cartpole_outputs/
+*cifar*

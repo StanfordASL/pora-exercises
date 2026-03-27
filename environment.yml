@@ -1,0 +1,23 @@
+name: pora
+dependencies:
+  - python=3.11
+  - pip
+  - jupyter
+  - numpy
+  - jax
+  - matplotlib
+  - shapely
+  - scipy
+  - seaborn
+  - pytorch
+  - tqdm
+  - cvxpy
+  - pip:
+    - gymnasium[box2d]
+    - equinox
+    - optax
+    - opencv-python
+    - pyvirtualdisplay
+    - torchvision
+    - ultralytics
+    - open3d
